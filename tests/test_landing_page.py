@@ -29,20 +29,31 @@ logging.info("Test session started.")
 # Global variable to store search results dictionary
 search_results_dict = {}
 
+def capture_screenshot(driver, name):
+    """Capture a screenshot and save it with the given name."""
+    screenshot_file = f"screenshot_{name}_{timestamp}.png"
+    driver.save_screenshot(screenshot_file)
+    logging.info(f"Screenshot captured: {screenshot_file}")
 @pytest.fixture(scope="module")
-def driver():
-    driver = get_driver()
+def driver(request):
+    headless_option = request.config.getoption("--headless")
+    driver = get_driver(headless=headless_option)
     yield driver
     driver.quit()
 
 
+@pytest.mark.dependency(name="test_open_landing_page")
 @pytest.mark.smoke
+@pytest.mark.ui
 def test_open_landing_page(driver):
     # Log test case start
     logging.info("Running test_open_landing_page")
 
     url = "https://www.britinsurance.com/"
     driver.get(url)
+
+    # Capture screenshot after opening the landing page
+    capture_screenshot(driver, "landing_page")
 
     try:
         # Wait for the "Allow All Cookies" button to be clickable using the locator
@@ -62,6 +73,8 @@ def test_open_landing_page(driver):
         # Check if the page title matches the expected title
         expected_title = "Brit Insurance"
         if expected_title not in driver.title:
+            # Capture screenshot on failure
+            capture_screenshot(driver, "landing_page_failure")
             # Log the failure along with the actual page title
             actual_title = driver.title
             logging.error(
@@ -70,9 +83,12 @@ def test_open_landing_page(driver):
                 f"Expected title: '{expected_title}' not found in the page title. Actual title: '{actual_title}'")
 
     except Exception as e:
+        # Capture screenshot on failure
+        capture_screenshot(driver, "landing_page_exception")
         pytest.fail(f"Test failed: {str(e)}")
 
-@pytest.mark.smoke
+@pytest.mark.dependency(name="test_click_search_button", depends=["test_open_landing_page"])
+@pytest.mark.ui
 def test_click_search_button(driver):
     # Log test case start
     logging.info("Running test_click_search_button")
@@ -88,6 +104,9 @@ def test_click_search_button(driver):
             EC.element_to_be_clickable((By.CSS_SELECTOR, search_button_locator))
         )
 
+        # Capture screenshot before clicking the search button
+        capture_screenshot(driver, "before_search_button_click")
+
         # Click the search button
         search_button.click()
 
@@ -97,8 +116,11 @@ def test_click_search_button(driver):
         # Log successful click on the search button
         logging.info("Successfully clicked on the search button.")
 
+        # Capture screenshot after clicking the search button
+        capture_screenshot(driver, "after_search_button_click")
+
         # Add a wait before clicking the element (if needed, adjust the time as needed)
-        time.sleep(20)  # Wait for 20 seconds before clicking the element
+        time.sleep(5)  # Wait for 20 seconds before clicking the element
 
         search_input_locator = BritInsuranceLocators.SEARCH_INPUT_FIELD
 
@@ -109,6 +131,9 @@ def test_click_search_button(driver):
 
         # Type 'IPSF 34' into the input element
         input_element.send_keys('IFRS 17')
+
+        # Capture screenshot after entering text into the input element
+        capture_screenshot(driver, "after_entering_text")
 
         #Log successful input and submission
         logging.info("Successfully entered 'IFRS 17'")
@@ -146,8 +171,12 @@ def test_click_search_button(driver):
         logging.info("Is Dictionary Empty? %s", not bool(search_results_dict))
 
     except Exception as e:
+        # Capture screenshot on failure
+        capture_screenshot(driver, "search_button_exception")
         pytest.fail(f"Test failed: {str(e)}")
 
+@pytest.mark.dependency(name="test_search_result_contains_expected_text", depends=["test_click_search_button"])
+@pytest.mark.ui
 def test_search_result_contains_expected_text(driver):
     # Log test case start
     logging.info("Running test_search_result_contains_expected_text")

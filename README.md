@@ -38,6 +38,21 @@ This test suite utilizes pytest for automated testing of Brit Insurance Home pag
     pip install -r requirements.txt
     ```
 
+### Running Tests
+
+To run the tests, use the following commands
+
+```bash
+pytest
+```
+
+### Headless Mode
+
+By default, the tests run in non-headless mode. To run the tests in headless mode, use the --headless option:
+```bash
+pytest --headles
+```
+
 ### Running Tests with Different Log Levels
 
 To run the tests with different log levels, use the following command:
