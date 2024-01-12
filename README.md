@@ -103,3 +103,16 @@ Here is an example entry:
 ```bash
 `2024-01-10 15:30:45 - INFO - Test session started.`
 ```
+
+### HTML REPORTS For Run
+
+HTML reports can also be generated for the runs.
+By triggering the run with below command
+
+```bash
+ pytest --html=reports/report.html
+```
+
+That will look something like this
+
+![Alt Text](ReportScreenshot.png)
