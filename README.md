@@ -3,6 +3,10 @@ Brit Insurance Demo
 
 This test suite utilizes pytest for automated testing of Brit Insurance Home page.
 
+## Author
+
+- [Arun S](https://github.com/contactarun22)
+
 ## Running Tests
 
 ### Prerequisites
