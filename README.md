@@ -116,3 +116,23 @@ By triggering the run with below command
 That will look something like this
 
 ![Alt Text](ReportScreenshot.png)
+
+
+### Build Docker Image and Run Docker
+
+1. Build the Docker image:
+
+```
+docker build -t brit-app .
+```
+
+2. Run the docker container:
+
+```
+docker run brit-app
+```
+
+![Alt Text](DockerScreeenshot.png)
+
+
+
