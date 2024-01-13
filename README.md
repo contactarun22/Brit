@@ -7,6 +7,11 @@ This test suite utilizes pytest for automated testing of Brit Insurance Home pag
 
 - [Arun S](https://github.com/contactarun22)
 
+## DEMO Video Recording
+
+[Click here to watch the video](https://vimeo.com/902466529?share=copy)
+
+
 ## Running Tests
 
 ### Prerequisites
