@@ -2,12 +2,15 @@
 # Author: Arun S (GitHub: contactarun22)
 # Description: This file is to test the BRIT landing page.
 
-import requests
 import pytest
 import logging
+import time
 from datetime import datetime
-
-BASE_URL = "https://api.restful-api.dev/objects/7"
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from utils.webdriver import get_driver
+from .locators import BritInsuranceLocators  # Import the locator class
 
 # Generate timestamp for log file name
 timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
@@ -23,37 +26,171 @@ formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 file_handler.setFormatter(formatter)
 logging.getLogger().addHandler(file_handler)
 
+# Log the start of the test session
+logging.info("Test session started.")
 
-@pytest.mark.api
-def test_initial_response():
-    response = requests.get(BASE_URL)
-    assert response.status_code == 200
-    initial_data = response.json()
-    logging.info("Initial Response: %s", initial_data)
+# Global variable to store search results dictionary
+search_results_dict = {}
 
+def capture_screenshot(driver, name):
+    """Capture a screenshot and save it with the given name."""
+    screenshot_file = f"screenshot_{name}_{timestamp}.png"
+    driver.save_screenshot(screenshot_file)
+    logging.info(f"Screenshot captured: {screenshot_file}")
 
-@pytest.mark.api
-@pytest.mark.parametrize("update_data, expected_status_code", [
-    ({"name": "Updated Name"}, 405),  # Example 1: Trying to update name
-    ({"data": {"price": 2000}}, 405),  # Example 2: Trying to update price
-    ({"data": {"year": 2022}}, 405),  # Example 3: Trying to update year
-    ({"data": {"new_field": "New Field"}}, 405),  # Example 4: Trying to add a new field
-    ({"name": "", "data": {"price": 1500}}, 405),  # Example 5: Trying to set name to empty
-    ({"data": {"price": "invalid_price"}}, 405),  # Example 6: Trying to set an invalid price
-    ({"name": "New Name", "data": {"new_field": "New Field"}}, 405),  # Example 7: Updating name and adding a new field
-    ({}, 405),  # Example 8: Trying to send an empty update
-    ({"non_existent_field": "Value"}, 405),  # Example 9: Trying to update a non-existent field
-    ({"name": "Updated Name", "data": {"price": 2000, "new_field": "New Field"}}, 405),
-    # Example 10: Updating multiple fields
-    ({"id": 8}, 405),  # Example 11: Trying to update the ID (should be ignored)
-    ({"data": {"year": "Two thousand twenty-two"}}, 405),  # Example 12: Trying to set a non-integer year
-    ({"data": {"price": -100}}, 405),  # Example 13: Trying to set a negative price
-    ({"name": None}, 405),  # Example 14: Trying to set name to None
-    ({"data": {"price": 2000, "extra_field": "Extra Field"}}, 405)  # Example 15: Updating with an unrecognized field
-])
-def test_patch_scenarios(update_data, expected_status_code):
-    headers = {"Content-Type": "application/json"}
-    response = requests.patch(BASE_URL, json=update_data, headers=headers)
+@pytest.fixture(scope="module")
+def driver(request):
+    headless_option = request.config.getoption("--headless")
+    driver = get_driver(headless=headless_option)
+    yield driver
+    driver.quit()
 
-    logging.info("PATCH Request for %s - Response Code: %s", update_data, response.status_code)
-    assert response.status_code == expected_status_code
+@pytest.mark.dependency(name="test_open_landing_page")
+@pytest.mark.smoke
+@pytest.mark.ui
+def test_open_landing_page(driver):
+    # Log test case start
+    logging.info("Running test_open_landing_page")
+
+    url = "https://www.britinsurance.com/"
+    driver.get(url)
+
+    # Capture screenshot after opening the landing page
+    capture_screenshot(driver, "landing_page")
+
+    try:
+        # Wait for the "Allow All Cookies" button to be clickable using the locator
+        allow_cookies_button = WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.ID, BritInsuranceLocators.ALLOW_COOKIES_BUTTON))
+        )
+
+        # Scroll into view in case the button is not visible
+        driver.execute_script("arguments[0].scrollIntoView(true);", allow_cookies_button)
+
+        # Click the "Allow All Cookies" button
+        allow_cookies_button.click()
+
+        # Log a message indicating that the button has been clicked
+        logging.info("Clicked the 'Allow All Cookies' button.")
+
+        # Check if the page title matches the expected title
+        expected_title = "Brit Insurance"
+        if expected_title not in driver.title:
+            # Capture screenshot on failure
+            capture_screenshot(driver, "landing_page_failure")
+            # Log the failure along with the actual page title
+            actual_title = driver.title
+            logging.error(
+                f"Expected title: '{expected_title}' not found in the page title. Actual title: '{actual_title}'")
+            pytest.fail(
+                f"Expected title: '{expected_title}' not found in the page title. Actual title: '{actual_title}'")
+
+    except Exception as e:
+        # Capture screenshot on failure
+        capture_screenshot(driver, "landing_page_exception")
+        pytest.fail(f"Test failed: {str(e)}")
+
+@pytest.mark.dependency(name="test_click_search_button", depends=["test_open_landing_page"])
+@pytest.mark.ui
+def test_click_search_button(driver):
+    # Log test case start
+    logging.info("Running test_click_search_button")
+
+    try:
+        # Add a wait before locating the element (adjust the time as needed)
+        time.sleep(5)  # Wait for 3 seconds before locating the element
+
+        search_button_locator = BritInsuranceLocators.NAV_SEARCH_BUTTON
+
+        # Find the search button and then click
+        search_button = WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.CSS_SELECTOR, search_button_locator))
+        )
+
+        # Capture screenshot before clicking the search button
+        capture_screenshot(driver, "before_search_button_click")
+
+        # Click the search button
+        search_button.click()
+
+        # Log successful click on the element
+        logging.info("Successfully clicked on the element.")
+
+        # Log successful click on the search button
+        logging.info("Successfully clicked on the search button.")
+
+        # Capture screenshot after clicking the search button
+        capture_screenshot(driver, "after_search_button_click")
+
+        # Add a wait before clicking the element (if needed, adjust the time as needed)
+        time.sleep(5)  # Wait for 20 seconds before clicking the element
+
+        search_input_locator = BritInsuranceLocators.SEARCH_INPUT_FIELD
+
+        # Find the search button and then click
+        input_element = WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.CSS_SELECTOR, search_input_locator))
+        )
+
+        # Type 'IPSF 34' into the input element
+        input_element.send_keys('IFRS 17')
+
+        # Capture screenshot after entering text into the input element
+        capture_screenshot(driver, "after_entering_text")
+
+        # Log successful input and submission
+        logging.info("Successfully entered 'IFRS 17'")
+
+        time.sleep(10)
+
+        # Locate the search results container
+        search_results_container_selector = BritInsuranceLocators.CONTAINER
+        search_results_container = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, search_results_container_selector))
+        )
+
+        # Locate individual search result items within the container
+        search_results_selector = BritInsuranceLocators.INDIVIDUAL_RESULT
+        search_results = WebDriverWait(search_results_container, 10).until(
+            EC.presence_of_all_elements_located((By.CSS_SELECTOR, search_results_selector))
+        )
+
+        # Create a dictionary to store the search results
+        global search_results_dict
+        search_results_dict = {}
+
+        # Iterate through each search result and capture the text
+        for index, result in enumerate(search_results, start=1):
+            result_text = result.text.strip()
+            search_results_dict[f"Result_{index}"] = result_text
+
+        # Log the dictionary
+        logging.info("Search Results Dictionary:")
+        logging.info(search_results_dict)
+
+        # Log additional information for debugging
+        logging.info("Number of Results: %d", len(search_results))
+        logging.info("Number of Items in Dictionary: %d", len(search_results_dict))
+        logging.info("Is Dictionary Empty? %s", not bool(search_results_dict))
+
+    except Exception as e:
+        # Capture screenshot on failure
+        capture_screenshot(driver, "search_button_exception")
+        pytest.fail(f"Test failed: {str(e)}")
+
+@pytest.mark.dependency(name="test_search_result_contains_expected_text", depends=["test_click_search_button"])
+@pytest.mark.ui
+def test_search_result_contains_expected_text(driver):
+    # Log test case start
+    logging.info("Running test_search_result_contains_expected_text")
+
+    try:
+        # Assert that the expected text is present in the search results
+        expected_text = "Interim results for the six months ended 30 June 2022"
+        assert any(expected_text in result_text for result_text in search_results_dict.values()),\
+            "Expected text '{expected_text}' not found in search results"
+
+    except Exception as e:
+        # Capture screenshot on failure
+        capture_screenshot(driver, "search_button_exception")
+        pytest.fail(f"Test failed: {str(e)}")
